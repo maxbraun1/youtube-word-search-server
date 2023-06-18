@@ -15,7 +15,6 @@ app.post('/getCaptions', async function (req, res) {
     console.log(req.body.id);
     YoutubeTranscript.fetchTranscript(id)
     .then((results) => {
-        console.log("results: ",results);
     
         let words = [];
 
