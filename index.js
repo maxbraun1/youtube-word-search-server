@@ -13,8 +13,10 @@ app.use(bodyParser.json())
 app.post('/getCaptions', async function (req, res) {
     let id = req.body.id;
     console.log(req.body.id);
-    YoutubeTranscript.fetchTranscript(id)
+    await YoutubeTranscript.fetchTranscript(id)
     .then((results) => {
+
+        console.log(results.length);
     
         let words = [];
 
