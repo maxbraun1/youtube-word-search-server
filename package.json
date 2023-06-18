@@ -6,5 +6,8 @@
     "nodemon": "^2.0.22",
     "youtube-transcript": "^1.0.6"
   },
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "build": "npm install && npm build"
+  }
 }
