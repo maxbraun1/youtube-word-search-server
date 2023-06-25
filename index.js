@@ -1,18 +1,31 @@
 import express from 'express'
+import mongoose from 'mongoose'
 import axios from 'axios'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import bodyParser from 'body-parser';
 import { YoutubeTranscript } from 'youtube-transcript';
+import searchModel from './models/searchModel.js';
 const app = express()
 
 dotenv.config();
+
+await mongoose.connect(process.env.MONGO_DB_URI);
 
 app.use(cors())
 
 app.use(bodyParser.json())
 
-app.post('/getCaptions', async function (req, res) {
+app.get('/getPopular', async (req, res) => {
+    try {
+        let popularSearches = await searchModel.find().sort({'searchCount': 'desc'}).limit(6);
+        res.json(popularSearches);
+    } catch (err) {
+        res.send("Error retrieving popular searches.");
+    }
+});
+
+app.post('/getCaptions', async (req, res) => {
     let id = req.body.id;
     console.log(req.body.id);
     await YoutubeTranscript.fetchTranscript(id)
@@ -62,6 +75,33 @@ app.post('/getCaptions', async function (req, res) {
                 wordCount: wordCount
             }
         }
+
+        // Add Search to Database
+        // Check if video has already been searched for
+        await searchModel.find({
+            videoID: id
+        }).then(async (doc) => {
+            if(doc.length != 0){
+                // Add 1 to searchCount
+                await searchModel.findOneAndUpdate({ videoID: id }, {
+                    $inc : {'searchCount' : 1}
+                })
+            }else{
+                // if not, add search to database
+                const newRequest = new searchModel({
+                    videoID: id,
+                    videoTitle: response.videoInfo.title,
+                    videoThumbnail: response.videoInfo.thumbnail,
+                    videoChannel: response.videoInfo.channel,
+                    videoURL: req.body.url,
+                    searchCount: 1
+                });
+        
+                await newRequest.save();
+            }
+        });
+
+        // Send Response
 
         res.send(response);
     })
