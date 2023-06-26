@@ -6,6 +6,7 @@ import dotenv from 'dotenv'
 import bodyParser from 'body-parser';
 import { YoutubeTranscript } from 'youtube-transcript';
 import searchModel from './models/searchModel.js';
+import { getSubtitles } from 'youtube-caption-extractor';
 const app = express()
 
 dotenv.config();
@@ -26,9 +27,10 @@ app.get('/getPopular', async (req, res) => {
 });
 
 app.post('/getCaptions', async (req, res) => {
-    let id = req.body.id;
+    let videoID = req.body.id;
+    let lang = 'en';
     console.log(req.body.id);
-    await YoutubeTranscript.fetchTranscript(id)
+    await getSubtitles({ videoID, lang })
     .then( async (results) => {
     
         let words = [];
@@ -41,13 +43,13 @@ app.post('/getCaptions', async (req, res) => {
                 wordCount++;
                 if(words.find(item => item.word == word) == undefined){
                     // word is not in array yet
-                    let newWord = { word: word, count: 1, locations : [ { offset: item.offset, phrase: item.text }]}
+                    let newWord = { word: word, count: 1, locations : [ { offset: item.start, phrase: item.text }]}
                     words.push(newWord);
                 }else{
                     // word is already in array
                     let wordIndex = words.findIndex(item => item.word == word);
                     words[wordIndex].count++;
-                    words[wordIndex].locations.push({ offset: item.offset, phrase: item.text });
+                    words[wordIndex].locations.push({ offset: item.start, phrase: item.text });
                 }
             })
         });
@@ -57,7 +59,7 @@ app.post('/getCaptions', async (req, res) => {
 
         // Get other info about video
 
-        let videoDetails = await axios.get("https://www.googleapis.com/youtube/v3/videos?part=snippet&id=" + id + "&key=" + process.env.YT_API_KEY).then((response) => {
+        let videoDetails = await axios.get("https://www.googleapis.com/youtube/v3/videos?part=snippet&id=" + videoID + "&key=" + process.env.YT_API_KEY).then((response) => {
             //console.log(response.data.items[0].snippet);
             return response.data.items[0].snippet;
         });
@@ -79,17 +81,17 @@ app.post('/getCaptions', async (req, res) => {
         // Add Search to Database
         // Check if video has already been searched for
         await searchModel.find({
-            videoID: id
+            videoID: videoID
         }).then(async (doc) => {
             if(doc.length != 0){
                 // Add 1 to searchCount
-                await searchModel.findOneAndUpdate({ videoID: id }, {
+                await searchModel.findOneAndUpdate({ videoID: videoID }, {
                     $inc : {'searchCount' : 1}
                 })
             }else{
                 // if not, add search to database
                 const newRequest = new searchModel({
-                    videoID: id,
+                    videoID: videoID,
                     videoTitle: response.videoInfo.title,
                     videoThumbnail: response.videoInfo.thumbnail,
                     videoChannel: response.videoInfo.channel,
