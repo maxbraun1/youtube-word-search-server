@@ -4,7 +4,6 @@ import axios from 'axios'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import bodyParser from 'body-parser';
-import { YoutubeTranscript } from 'youtube-transcript';
 import searchModel from './models/searchModel.js';
 import { getSubtitles } from 'youtube-caption-extractor';
 const app = express()
