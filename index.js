@@ -12,11 +12,7 @@ dotenv.config();
 
 await mongoose.connect(process.env.MONGO_DB_URI);
 
-const corsOptions = {
-  origin: ["http://localhost:5173", "https://ytwordsearch.com/"],
-};
-
-app.use(cors(corsOptions));
+app.use(cors());
 
 app.use(bodyParser.json());
 
